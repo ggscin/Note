@@ -1,6 +1,5 @@
 package com.example.note.data
 
-import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 
@@ -8,6 +7,7 @@ import androidx.room.PrimaryKey
 data class Note(
     val nameOfNote: String,
     val descriptionOfNote: String,
+    val importance: SortType,
     @PrimaryKey(autoGenerate = true)
     val id: Int = 0
 )

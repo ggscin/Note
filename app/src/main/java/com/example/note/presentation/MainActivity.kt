@@ -10,6 +10,7 @@ import androidx.compose.runtime.getValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.room.Room
+import com.example.note.data.Note
 import com.example.note.data.NoteDatabase
 import com.example.note.domain.NoteEvent
 import com.example.note.ui.theme.NoteTheme
@@ -22,7 +23,7 @@ class MainActivity : ComponentActivity() {
             applicationContext,
             NoteDatabase::class.java,
             "kaki.db"
-        ).build()
+        ).fallbackToDestructiveMigration().build()
     }
 
     private val viewModel by viewModels<NoteViewModel>(

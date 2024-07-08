@@ -6,6 +6,7 @@ import com.example.note.data.Note
 import com.example.note.data.NoteDao
 import com.example.note.domain.NoteEvent
 import com.example.note.data.NoteState
+import com.example.note.data.SortType
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -15,24 +16,32 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class NoteViewModel(
     private val dao: NoteDao
 ) : ViewModel() {
 
+    private val _sortType = MutableStateFlow(SortType.RED_IMPORTANCE)
+    private val _notes = _sortType
+        .flatMapLatest { sortType ->
+            when (sortType) {
+                SortType.RED_IMPORTANCE -> dao.getContactsByImportanceRed(SortType.RED_IMPORTANCE)
+                SortType.YELLOW_IMPORTANCE -> dao.getContactsByImportanceYellow(SortType.YELLOW_IMPORTANCE)
+                SortType.GREEN_IMPORTANCE -> dao.getContactsByImportanceGreen(SortType.GREEN_IMPORTANCE)
+            }
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(), emptyList())
+
+
     private val _state = MutableStateFlow(NoteState())
-    @OptIn(ExperimentalCoroutinesApi::class)
-    private val _contacts = _state
-        .flatMapLatest { state ->
-            dao.getAllNotes()
-        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(), emptyList())
 
 
-    val state = combine(_state, _contacts) { state, contacts ->
+    val state = combine(_state, _sortType, _notes) { state, sortType, notes ->
         state.copy(
-            notes = contacts
+            notes = notes,
+            sortType = sortType
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), NoteState())
-
 
 
     fun onEvent(event: NoteEvent) {
@@ -43,33 +52,40 @@ class NoteViewModel(
                 }
             }
 
-            NoteEvent.HideDialog -> {
-                _state.update {
-                    it.copy(
-                        isAddingNote = false
-                    )
-                }
-            }
-
             NoteEvent.SaveNote -> {
+                val importance = state.value.importance
                 val nameOfNote = state.value.nameOfNote
                 val descriptionOfNote = state.value.descriptionOfNote
+
+
 
                 if (nameOfNote.isBlank() || descriptionOfNote.isBlank()) {
                     return
                 }
+
                 val note = Note(
-                    nameOfNote = nameOfNote,
-                    descriptionOfNote = descriptionOfNote,
+                    importance = importance,
+                    nameOfNote = nameOfNote.trim(),
+                    descriptionOfNote = descriptionOfNote.trim(),
+
                 )
+
                 viewModelScope.launch {
                     dao.addNote(note)
                 }
                 _state.update {
                     it.copy(
-                        isAddingNote = false,
+                        importance = SortType.RED_IMPORTANCE,
                         nameOfNote = "",
                         descriptionOfNote = "",
+                    )
+                }
+            }
+
+            is NoteEvent.SetImportance -> {
+                _state.update {
+                    it.copy(
+                        importance = SortType.YELLOW_IMPORTANCE
                     )
                 }
             }
@@ -90,13 +106,10 @@ class NoteViewModel(
                 }
             }
 
-            is NoteEvent.ShowDialog -> {
-                _state.update {
-                    it.copy(
-                        isAddingNote = true
-                    )
-                }
+            is NoteEvent.SortNote -> {
+                _sortType.value = event.sortType
             }
+
         }
     }
 }

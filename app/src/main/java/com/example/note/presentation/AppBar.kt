@@ -34,12 +34,13 @@ import com.example.note.R
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AppBarView(
+
     title: String,
     onBackNavClicked: () -> Unit = {}
 ){
 
     val navigationIcon : (@Composable ()-> Unit)? =
-        if (!title.contains("Your List")) {
+        if (title.equals("Add note")) {
             {
                 IconButton(onClick = { onBackNavClicked() }) {
                     Icon(
@@ -50,30 +51,24 @@ fun AppBarView(
                 }
             }
         }else{
-            null
+            return
         }
 
 
     if (navigationIcon != null) {
         TopAppBar(
-            modifier = Modifier,
+            modifier = Modifier.heightIn(max = 80.dp),
             colors = TopAppBarDefaults
                 .topAppBarColors(containerColor = colorResource(id = R.color.dark_Blue)),
             title = {
                 Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.Start, verticalArrangement = Arrangement.SpaceEvenly) {
-                    Text(text = title,
+                    Text(
+                        text = title,
                         color = colorResource(id = R.color.pink),
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier
                             .padding(start = 4.dp)
                             .heightIn(max = 24.dp)
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Box(
-                        modifier = Modifier
-                            .border(1.dp, colorResource(id = R.color.pink))
-                            .fillMaxWidth()
-                            .size(0.dp, 1.dp)
                     )
                 }
             },
